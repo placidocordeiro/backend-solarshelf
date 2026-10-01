@@ -1,0 +1,34 @@
+# Node.js
+node_modules/
+node_modules/*.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+.pnpm-store/
+.DS_Store
+.env
+.env.local
+.env.*.local
+dist/
+build/
+coverage/
+.cache/
+.vscode/
+
+# Prisma
+/prisma/.env
+prisma/.env
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# PostgreSQL
+postgres-data/
+pgdata/
+*.dump
+*.backup
+*pgdata*

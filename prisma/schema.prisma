@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Produto {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  descricao String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tags          Tag[]
+  movimentacoes Movimentacao[]
+
+  @@map("produtos")
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  nome      String
+  senhaHash String   @map("senha_hash")
+  perfil    Perfil   @default(OPERADOR)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("usuarios")
+}
+
+enum Perfil {
+  ADMIN
+  OPERADOR
+}
+
+model Tag {
+  id             String         @id // TID da tag RFID do pallet
+  produtoId      Int            @map("produto_id")
+  produto        Produto        @relation(fields: [produtoId], references: [id])
+  lote           String // até 11 dígitos, guardado como string
+  quantidade     Int // qtd de unidades do produto nesse pallet
+  dataFabricacao DateTime       @map("data_fabricacao")
+  validade       DateTime
+  dataEntrada    DateTime       @default(now()) @map("data_entrada")
+  dataSaida      DateTime?      @map("data_saida") // null = pallet ainda em estoque
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  movimentacoes  Movimentacao[]
+
+  @@index([produtoId])
+  @@index([lote])
+  @@index([dataSaida])
+  @@map("tags")
+}
+
+enum TipoMovimentacao {
+  ENTRADA
+  SAIDA
+}
+
+model Movimentacao {
+  id         Int              @id @default(autoincrement())
+  tipo       TipoMovimentacao
+  tagId      String           @map("tag_id")
+  produtoId  Int              @map("produto_id")
+  quantidade Int
+  data       DateTime         @default(now())
+  tag        Tag              @relation(fields: [tagId], references: [id])
+  produto    Produto          @relation(fields: [produtoId], references: [id])
+
+  @@index([data])
+  @@index([produtoId])
+  @@index([tagId])
+  @@map("movimentacoes")
+}
