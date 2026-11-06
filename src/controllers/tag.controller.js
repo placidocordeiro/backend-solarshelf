@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const { validateTagPayload } = require('../lib/tagValidation');
 
 // GET /tags
 // Por padrão só traz tags ATIVAS (dataSaida = null).
@@ -52,18 +53,19 @@ async function createTag(req, res) {
   try {
     const { id, produtoId, lote, quantidade, dataFabricacao, validade } = req.body;
 
-    if (!id || !produtoId || !lote || !quantidade || !dataFabricacao || !validade) {
-      return res.status(400).json({
-        error: 'Campos obrigatórios: id, produtoId, lote, quantidade, dataFabricacao, validade',
-      });
+    const validationErrors = validateTagPayload(req.body);
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ error: 'Dados inválidos', detalhes: validationErrors });
     }
+
+    const trimmedId = id.trim();
 
     const produto = await prisma.produto.findUnique({ where: { id: Number(produtoId) } });
     if (!produto) {
       return res.status(400).json({ error: 'Produto informado não existe' });
     }
 
-    const tagExiste = await prisma.tag.findUnique({ where: { id } });
+    const tagExiste = await prisma.tag.findUnique({ where: { id: trimmedId } });
     if (tagExiste) {
       return res.status(409).json({ error: 'Já existe uma tag com esse TID' });
     }
@@ -71,7 +73,7 @@ async function createTag(req, res) {
     const tag = await prisma.$transaction(async (tx) => {
       const novaTag = await tx.tag.create({
         data: {
-          id,
+          id: trimmedId,
           produtoId: Number(produtoId),
           lote,
           quantidade: Number(quantidade),
@@ -104,12 +106,18 @@ async function createTag(req, res) {
 async function updateTag(req, res) {
   try {
     const { tid } = req.params;
-    const { lote, quantidade, dataFabricacao, validade } = req.body;
 
     const tagExiste = await prisma.tag.findUnique({ where: { id: tid } });
     if (!tagExiste) {
       return res.status(404).json({ error: 'Tag não encontrada' });
     }
+
+    const validationErrors = validateTagPayload(req.body, { partial: true, existing: tagExiste });
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ error: 'Dados inválidos', detalhes: validationErrors });
+    }
+
+    const { lote, quantidade, dataFabricacao, validade } = req.body;
 
     const tag = await prisma.tag.update({
       where: { id: tid },
